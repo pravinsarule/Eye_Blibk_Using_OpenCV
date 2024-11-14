@@ -59,10 +59,12 @@ if camera_input:
     if results.multi_face_landmarks:
         mesh_coordinates = landmarksDetection(frame, results)
         eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
+
+        # Use global keyword here before assigning to COUNTER and TOTAL_BLINKS
+        global COUNTER, TOTAL_BLINKS
         cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
 
         # Blink detection
-        global COUNTER, TOTAL_BLINKS
         if eyes_ratio > 3:
             COUNTER += 1
         else:
