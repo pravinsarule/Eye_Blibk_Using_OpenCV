@@ -4,14 +4,16 @@ import mediapipe as mp
 from math import sqrt
 import numpy as np
 
-# Initialize Mediapipe and constants
-mp_face_mesh = mp.solutions.face_mesh
-face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.6, min_tracking_confidence=0.7)
+# Initialize global variables
 COUNTER = 0
 TOTAL_BLINKS = 0
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-# Define landmarks for blink detection
+# Mediapipe setup
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.6, min_tracking_confidence=0.7)
+
+# Define eye landmarks
 LEFT_EYE = [362, 382, 381, 380, 374, 373, 390, 249, 263, 466, 388, 387, 386, 385, 384, 398]
 RIGHT_EYE = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 161, 246]
 
@@ -36,15 +38,17 @@ def blinkRatio(image, landmarks, right_indices, left_indices):
     left_eye_ratio = left_eye_h_distance / left_eye_v_distance
     return (right_eye_ratio + left_eye_ratio) / 2
 
-# Streamlit app setup
+# Streamlit setup
 st.title("Real-Time Eye Blink Detection")
 st.write("**Instructions:** Blink your eyes to test the detection. The app will count your blinks.")
 
 # Use Streamlit's camera input
 camera_input = st.camera_input("Enable your camera")
 
-# Display placeholder for blink counter
+# Placeholder for displaying blink counter
 frame_placeholder = st.empty()
+
+# Main processing loop if camera is available
 if camera_input:
     # Convert the captured image into a format OpenCV can process
     img = np.array(camera_input)
@@ -58,10 +62,12 @@ if camera_input:
     # Blink detection logic
     if results.multi_face_landmarks:
         mesh_coordinates = landmarksDetection(frame, results)
+
+        # Make variables global to modify their values
+        global COUNTER, TOTAL_BLINKS
         eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
 
-        # Use global keyword here before assigning to COUNTER and TOTAL_BLINKS
-        global COUNTER, TOTAL_BLINKS
+        # Display message
         cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
 
         # Blink detection
