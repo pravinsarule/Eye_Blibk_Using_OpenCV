@@ -60,10 +60,6 @@ st.title("Real-Time Eye Blink Detection")
 
 # Create a video capture object and initialize variables
 video_capture = cv2.VideoCapture(0)
-if not video_capture.isOpened():
-    st.error("Cannot access the camera. Please check your camera permissions.")
-    exit()
-
 
 # Display blink counter and instructions
 st.write("**Instructions:**")
