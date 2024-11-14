@@ -42,59 +42,65 @@ def blinkRatio(image, landmarks, right_indices, left_indices):
 st.title("Real-Time Eye Blink Detection")
 st.write("**Instructions:** Blink your eyes to test the detection. The app will count your blinks.")
 
-# Use Streamlit's camera input
-camera_input = st.camera_input("Enable your camera")
+# Initialize video capture
+video_capture = cv2.VideoCapture(0)
+
+# Check if the camera is opened successfully
+if not video_capture.isOpened():
+    st.error("Camera not accessible. Please check your camera settings and permissions.")
+    st.stop()
 
 # Placeholder for displaying blink counter
 frame_placeholder = st.empty()
 
-# Main processing if camera input is available
-if camera_input:
-    # Convert the captured image into a format OpenCV can process
-    img = np.array(camera_input)
-    
-    # Check if the image is valid (non-empty)
-    if img is not None and img.size > 0:
-        frame = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+# Main loop
+while True:
+    # Capture frame from camera
+    ret, frame = video_capture.read()
+
+    # Check if frame is successfully read
+    if not ret or frame is None:
+        st.error("Failed to capture frame from camera. Please check the camera connection.")
+        break
+
+    # Resize the frame safely
+    try:
+        frame = cv2.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+    except cv2.error as e:
+        st.error(f"Error resizing the frame: {str(e)}")
+        break
+
+    # Process the frame with mediapipe
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = face_mesh.process(rgb_frame)
+
+    if results.multi_face_landmarks:
+        mesh_coordinates = landmarksDetection(frame, results)
+
+        # Declare global variables before modifying them
+        global COUNTER, TOTAL_BLINKS
         
-        # Handle resizing carefully
-        try:
-            frame = cv2.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
-        except cv2.error as e:
-            st.error(f"Error resizing the frame: {str(e)}")
-            frame = img  # Fallback to original frame if resizing fails
-        
-        # Process frame with Mediapipe
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        results = face_mesh.process(rgb_frame)
+        # Update COUNTER and TOTAL_BLINKS based on blink ratio
+        eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
 
-        # Blink detection logic
-        if results.multi_face_landmarks:
-            mesh_coordinates = landmarksDetection(frame, results)
+        # Display message
+        cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
 
-            # Declare global variables before modifying them
-            global COUNTER, TOTAL_BLINKS
-            
-            # Update COUNTER and TOTAL_BLINKS based on blink ratio
-            eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
+        # Blink detection
+        if eyes_ratio > 3:
+            COUNTER += 1
+        else:
+            if COUNTER > 4:
+                TOTAL_BLINKS += 1
+                COUNTER = 0
 
-            # Display message
-            cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
+        # Display the blink count
+        cv2.rectangle(frame, (20, 120), (290, 160), (0, 0, 0), -1)
+        cv2.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (30, 150), FONT, 1, (0, 255, 0), 2)
 
-            # Blink detection
-            if eyes_ratio > 3:
-                COUNTER += 1
-            else:
-                if COUNTER > 4:
-                    TOTAL_BLINKS += 1
-                    COUNTER = 0
+    # Convert the frame back to RGB for Streamlit and display it
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
 
-            # Display the blink count
-            cv2.rectangle(frame, (20, 120), (290, 160), (0, 0, 0), -1)
-            cv2.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (30, 150), FONT, 1, (0, 255, 0), 2)
-
-        # Convert the frame back to RGB for Streamlit and display it
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-else:
-    st.warning("Please enable your camera to start blink detection.")
+# Release the camera when done
+video_capture.release()
