@@ -1,12 +1,13 @@
-# Streamlit app interface
 import streamlit as st
 import cv2
 import mediapipe
 from math import sqrt
+import numpy as np
 
 # Initialize variables
 COUNTER = 0
 TOTAL_BLINKS = 0
+
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 # Initialize face mesh
@@ -16,27 +17,19 @@ RIGHT_EYE = [33, 7, 163, 144, 145, 153, 154, 155, 133, 173, 157, 158, 159, 160, 
 mediapipe_face_mesh = mediapipe.solutions.face_mesh
 face_mesh = mediapipe_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.6, min_tracking_confidence=0.7)
 
-# Initialize webcam capture
-video_capture = cv2.VideoCapture(1)
-
-# Ensure the camera is accessible
-if not video_capture.isOpened():
-    st.error("Cannot access the camera. Please check your camera permissions.")
-    exit()
+# Streamlit camera input
+frame_placeholder = st.empty()
 
 # Display blink counter and instructions
 st.title("Real-Time Eye Blink Detection")
 st.write("**Instructions:** Blink your eyes to test the detection.")
 
-frame_placeholder = st.empty()
+# Initialize the camera input widget in Streamlit
+camera_input = st.camera_input("Capture from webcam")
 
-while True:
-    ret, frame = video_capture.read()
-
-    # Check if frame is valid
-    if not ret or frame is None:
-        st.error("Failed to capture image from webcam.")
-        break
+if camera_input:
+    # Convert image from PIL to NumPy array (OpenCV format)
+    frame = np.array(camera_input)
 
     frame = cv2.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
     frame_height, frame_width = frame.shape[:2]
@@ -65,10 +58,5 @@ while True:
 
     # Display frame in Streamlit
     frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
-
-    # Break the loop if ESC key is pressed
-    if cv2.waitKey(1) == 27:
-        break
-
-video_capture.release()
-cv2.destroyAllWindows()
+else:
+    st.warning("Please enable your camera to use this feature.")
