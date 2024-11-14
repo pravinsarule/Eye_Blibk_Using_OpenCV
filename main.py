@@ -17,7 +17,7 @@ mediapipe_face_mesh = mediapipe.solutions.face_mesh
 face_mesh = mediapipe_face_mesh.FaceMesh(max_num_faces=1, min_detection_confidence=0.6, min_tracking_confidence=0.7)
 
 # Initialize webcam capture
-video_capture = cv2.VideoCapture(0)
+video_capture = cv2.VideoCapture(1)
 
 # Ensure the camera is accessible
 if not video_capture.isOpened():
