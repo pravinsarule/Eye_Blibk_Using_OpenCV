@@ -1,4 +1,3 @@
-
 import streamlit as st
 import cv2
 import mediapipe as mp
@@ -63,8 +62,10 @@ if camera_input:
     if results.multi_face_landmarks:
         mesh_coordinates = landmarksDetection(frame, results)
 
-        # Make variables global to modify their values
+        # Declare global variables before modifying them
         global COUNTER, TOTAL_BLINKS
+        
+        # Update COUNTER and TOTAL_BLINKS based on blink ratio
         eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
 
         # Display message
