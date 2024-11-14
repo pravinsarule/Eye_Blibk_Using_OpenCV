@@ -52,39 +52,49 @@ frame_placeholder = st.empty()
 if camera_input:
     # Convert the captured image into a format OpenCV can process
     img = np.array(camera_input)
-    frame = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
-    # Process frame with Mediapipe
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(rgb_frame)
-
-    # Blink detection logic
-    if results.multi_face_landmarks:
-        mesh_coordinates = landmarksDetection(frame, results)
-
-        # Declare global variables before modifying them
-        global COUNTER, TOTAL_BLINKS
+    
+    # Check if the image is valid (non-empty)
+    if img is not None and img.size > 0:
+        frame = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         
-        # Update COUNTER and TOTAL_BLINKS based on blink ratio
-        eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
+        # Handle resizing carefully
+        try:
+            frame = cv2.resize(frame, None, fx=1.5, fy=1.5, interpolation=cv2.INTER_CUBIC)
+        except cv2.error as e:
+            st.error(f"Error resizing the frame: {str(e)}")
+            frame = img  # Fallback to original frame if resizing fails
+        
+        # Process frame with Mediapipe
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        results = face_mesh.process(rgb_frame)
 
-        # Display message
-        cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
+        # Blink detection logic
+        if results.multi_face_landmarks:
+            mesh_coordinates = landmarksDetection(frame, results)
 
-        # Blink detection
-        if eyes_ratio > 3:
-            COUNTER += 1
-        else:
-            if COUNTER > 4:
-                TOTAL_BLINKS += 1
-                COUNTER = 0
+            # Declare global variables before modifying them
+            global COUNTER, TOTAL_BLINKS
+            
+            # Update COUNTER and TOTAL_BLINKS based on blink ratio
+            eyes_ratio = blinkRatio(frame, mesh_coordinates, RIGHT_EYE, LEFT_EYE)
 
-        # Display the blink count
-        cv2.rectangle(frame, (20, 120), (290, 160), (0, 0, 0), -1)
-        cv2.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (30, 150), FONT, 1, (0, 255, 0), 2)
+            # Display message
+            cv2.putText(frame, "Please blink your eyes", (50, 100), FONT, 1, (0, 255, 0), 2)
 
-    # Convert the frame back to RGB for Streamlit and display it
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
+            # Blink detection
+            if eyes_ratio > 3:
+                COUNTER += 1
+            else:
+                if COUNTER > 4:
+                    TOTAL_BLINKS += 1
+                    COUNTER = 0
+
+            # Display the blink count
+            cv2.rectangle(frame, (20, 120), (290, 160), (0, 0, 0), -1)
+            cv2.putText(frame, f'Total Blinks: {TOTAL_BLINKS}', (30, 150), FONT, 1, (0, 255, 0), 2)
+
+        # Convert the frame back to RGB for Streamlit and display it
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_placeholder.image(frame_rgb, channels="RGB", use_container_width=True)
 else:
     st.warning("Please enable your camera to start blink detection.")
